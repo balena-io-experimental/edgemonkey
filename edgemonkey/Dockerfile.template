@@ -1,0 +1,9 @@
+FROM balenalib/%%BALENA_MACHINE_NAME%%-fedora-python:3.7
+
+RUN install_packages iptables tc iputils bind-utils jq wondershaper
+
+WORKDIR /usr/src/app
+
+COPY entry.sh ./
+
+ENTRYPOINT [ "/usr/src/app/entry.sh" ]
