@@ -1,6 +1,14 @@
 FROM balenalib/%%BALENA_MACHINE_NAME%%-fedora-python:3.7
 
-RUN install_packages iptables tc iputils bind-utils jq wondershaper
+RUN install_packages \
+    bind-utils \
+    dbus \
+    iptables \
+    iputils \
+    jq \
+    lockfile-progs \
+    tc \
+    wondershaper
 
 WORKDIR /usr/src/app
 

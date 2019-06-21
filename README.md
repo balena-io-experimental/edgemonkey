@@ -25,8 +25,11 @@ still recommended that one has **PHYSICAL ACCESS** to the device in case things 
 | `THROTTLE_FREQ` | how often to throttle traffic (in 1/x refreshes) | 25 |
 | `PACKET_DROP_FREQ` | how often to drop packets (in 1/x refreshes) | 25 |
 | `DNS_DROP_FREQ` | how often to block DNS traffic (in 1/x refreshes) | 25 |
-| `SUPERVISOR_RESTART_FREQ` | how often to restart the supervisor (in 1/x refreshes) | 25 |
+| `RANDOM_SERVICE_RESTART_RESTART_FREQ` | how often to restart one of the hostOS processes (in 1/x refreshes) | 25 |
 | `BANDWIDTH_MAX` | maximum bandwidth for wondershaper resets (in Kbps) | 9999999 |
+| `RANDOM_SUBNET_FREQ` | how often to randomly block a subnet (in 1/x refreshes) | 25 |
+| `LOCKFILE_FREQ` | how often to take the application lockfile (in 1/x refreshes) | 25 |
+| `FORCED_UPDATE_FREQ` | how often to force the supervisor to update the application (in 1/x refreshes) | 25 |
 
 ### Currently implemented tests
 #### `global_throttle_traffic`
@@ -38,11 +41,35 @@ Drop $PERC_DROP packets indiscriminantly
 #### `global_bandwidth_limit`
 Limit either upload, download, or all bandwidth
 
+#### `drop_random_subnet`
+Drop all traffic to a randomly-generated subnet
+
+#### `force_update`
+Force an update from the supervisor (disregarding application locks)
+
+#### `take_application_lock`
+Take the application lock exclusively
+
 #### `drop_dns`
 Drop all UDP port 53 (DNS) traffic
 
 #### `restart_supervisor`
-Not yet implemented
+Restart the `resin-supervisor` service in the hostOS via DBus
+
+#### `restart_network`
+Restart the `NetworkManager` service in the hostOS via DBus
+
+#### `restart_dns`
+Restart the `dnsmasq` service in the hostOS via DBus
+
+#### `restart_timesync`
+Restart the `chronyd` service in the hostOS via DBus
+
+#### `restart_vpn`
+Restart the `openvpn` service in the hostOS via DBus
+
+#### `restart_engine`
+Restart the `balena` service in the hostOS via DBus
 
 #### `restart_app`
 Not yet implemented
