@@ -16,20 +16,20 @@ still recommended that one has **PHYSICAL ACCESS** to the device in case things 
 | Variable | Description | Default value |
 | ------- | ------ | ----- |
 | `CHAOS` | if set, prevent the chaos engine from starting up (for debugging) | unset |
-| `GLOBAL_TIMEOUT` | after N seconds (refresh rate * loop count), edgemonkey will clean up & sleep infinity (for debugging) (in s) | 0 |
-| `GLOBAL_REFRESH` | global refresh rate (in s) | 2 |
-| `THROTTLE_VALUE` | global throttle value (in ms) | 250 |
-| `PERC_DROP` | global percentage of traffic to drop (in %) | 5 |
-| `DOWNLOAD_LIMIT` | global download bandwidth limit (in Kbps) | 500 |
-| `UPLOAD_LIMIT` | global upload bandwidth limit (in Kbps) | 500 |
-| `THROTTLE_FREQ` | how often to throttle traffic (in 1/x refreshes) | 25 |
-| `PACKET_DROP_FREQ` | how often to drop packets (in 1/x refreshes) | 25 |
-| `DNS_DROP_FREQ` | how often to block DNS traffic (in 1/x refreshes) | 25 |
-| `RANDOM_SERVICE_RESTART_RESTART_FREQ` | how often to restart one of the hostOS processes (in 1/x refreshes) | 25 |
 | `BANDWIDTH_MAX` | maximum bandwidth for wondershaper resets (in Kbps) | 9999999 |
-| `RANDOM_SUBNET_FREQ` | how often to randomly block a subnet (in 1/x refreshes) | 25 |
-| `LOCKFILE_FREQ` | how often to take the application lockfile (in 1/x refreshes) | 25 |
+| `CLEANUP_FREQ` | how often to generally remove limits/throttles/filters (in 1/x refreshes) | 4 |
+| `DOWNLOAD_LIMIT` | global download bandwidth limit (in Kbps) | 500 |
 | `FORCED_UPDATE_FREQ` | how often to force the supervisor to update the application (in 1/x refreshes) | 25 |
+| `GLOBAL_REFRESH` | global refresh rate (in s) | 2 |
+| `GLOBAL_TIMEOUT` | after N seconds (refresh rate * loop count), edgemonkey will clean up & sleep infinity (for debugging) (in s) | 0 |
+| `LOCKFILE_FREQ` | how often to take the application lockfile (in 1/x refreshes) | 25 |
+| `PACKET_DROP_FREQ` | how often to drop packets (in 1/x refreshes) | 25 |
+| `PERC_DROP` | global percentage of traffic to drop (in %) | 5 |
+| `RANDOM_SERVICE_RESTART_FREQ` | how often to restart one of the hostOS processes (in 1/x refreshes) | 25 |
+| `RANDOM_SUBNET_FREQ` | how often to randomly block a subnet (in 1/x refreshes) | 25 |
+| `THROTTLE_FREQ` | how often to throttle traffic (in 1/x refreshes) | 25 |
+| `THROTTLE_VALUE` | global throttle value (in ms) | 250 |
+| `UPLOAD_LIMIT` | global upload bandwidth limit (in Kbps) | 500 |
 
 ### Currently implemented tests
 #### `global_throttle_traffic`
@@ -86,11 +86,9 @@ Not yet implemented
 * Disk space exhaustion
 * Service-specific bandwidth throttling (DNS, NTP, HTTP, VPN, etc)
 * Disk I/O throttling
-* Time corruption (MITM)
+* Time corruption (MiTM)
 * Limit CPU frequency
-* Drop LAN traffic
-* Drop WAN traffic
 * Log spamming
-* Packet duplication https://wiki.linuxfoundation.org/networking/netem
-* Packet corruption https://wiki.linuxfoundation.org/networking/netem
-* Packet reordering https://wiki.linuxfoundation.org/networking/netem
+* Packet duplication (https://wiki.linuxfoundation.org/networking/netem)
+* Packet corruption
+* Packet reordering

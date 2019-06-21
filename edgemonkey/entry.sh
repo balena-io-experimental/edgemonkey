@@ -4,6 +4,7 @@ trap cleanup EXIT INT HUP
 
 INTERFACE="$(ip addr | awk '/'"$(curl -sq -X GET --header "Content-Type:application/json" \
 "${BALENA_SUPERVISOR_ADDRESS}/v1/device?apikey=${BALENA_SUPERVISOR_API_KEY}" | jq -r .ip_address)"'/{print $NF}')"
+SERVICE_COUNT=0
 
 # come from ENV
 # values
@@ -18,14 +19,15 @@ TC_CORRELATION=${TC_CORRELATION:-25} # %
 BANDWIDTH_MAX=${BANDWIDTH_MAX:-9999999} # Kbps
 
 # frequencies
-THROTTLE_FREQ=${THROTTLE_FREQ:-25}
-PACKET_DROP_FREQ=${PACKET_DROP_FREQ:-25}
-DNS_DROP_FREQ=${DNS_DROP_FREQ:-25}
-RANDOM_SUBNET_FREQ=${RANDOM_SUBNET_FREQ:-25}
-LOCKFILE_FREQ=${LOCKFILE_FREQ:-25}
-FORCED_UPDATE_FREQ=${FORCED_UPDATE_FREQ:-25}
-RANDOM_SERVICE_RESTART_RESTART_FREQ=${RANDOM_SERVICE_RESTART_RESTART_FREQ:-25}
 BANDWIDTH_LIMIT_FREQ=${BANDWIDTH_LIMIT_FREQ:-25}
+CLEANUP_FREQ=${CLEANUP_FREQ:-4}
+DNS_DROP_FREQ=${DNS_DROP_FREQ:-25}
+FORCED_UPDATE_FREQ=${FORCED_UPDATE_FREQ:-25}
+LOCKFILE_FREQ=${LOCKFILE_FREQ:-25}
+PACKET_DROP_FREQ=${PACKET_DROP_FREQ:-25}
+RANDOM_SERVICE_RESTART_FREQ=${RANDOM_SERVICE_RESTART_FREQ:-10}
+RANDOM_SUBNET_FREQ=${RANDOM_SUBNET_FREQ:-25}
+THROTTLE_FREQ=${THROTTLE_FREQ:-25}
 
 function global_throttle_traffic() {
     echo "throttling traffic globally to ${THROTTLE}.."
@@ -59,26 +61,32 @@ function restart_unit(){
     echo "$1 restarted.."
 }
 
+SERVICE_COUNT=$(( SERVICE_COUNT + 1 ))
 function restart_supervisor() {
     restart_unit "resin-supervisor.service"
 }
 
+SERVICE_COUNT=$(( SERVICE_COUNT + 1 ))
 function restart_vpn() {
     restart_unit "openvpn.service"
 }
 
+SERVICE_COUNT=$(( SERVICE_COUNT + 1 ))
 function restart_network() {
     restart_unit "NetworkManager.service"
 }
 
+SERVICE_COUNT=$(( SERVICE_COUNT + 1 ))
 function restart_dns() {
     restart_unit "dnsmasq.service"
 }
 
+SERVICE_COUNT=$(( SERVICE_COUNT + 1 ))
 function restart_timesync() {
     restart_unit "chronyd.service"
 }
 
+SERVICE_COUNT=$(( SERVICE_COUNT + 1 ))
 function restart_engine() {
     restart_unit "balena.service"
 }
@@ -189,14 +197,17 @@ function restore_dns() {
 
 function take_application_lock() {
     echo "taking lock at $BALENA_APP_LOCK_PATH"
-    lockfile-create --use-pid --lock-name "$BALENA_APP_LOCK_PATH"
+    lockfile-create --lock-name "$BALENA_APP_LOCK_PATH"
     echo "took lock at $BALENA_APP_LOCK_PATH"
 }
 
 function remove_application_lock() {
     echo "removing lock at $BALENA_APP_LOCK_PATH"
-    lockfile-remove --lock-name "$BALENA_APP_LOCK_PATH"
-    echo "removed lock at $BALENA_APP_LOCK_PATH"
+    if lockfile-remove --lock-name "$BALENA_APP_LOCK_PATH"; then
+        echo "removed lock at $BALENA_APP_LOCK_PATH"
+    else
+        echo "could not remove lock at $BALENA_APP_LOCK_PATH, owned by pid $(cat "$BALENA_APP_LOCK_PATH")"
+    fi
 }
 function cleanup() {
     # passing a 0 restores all DNS traffic
@@ -220,42 +231,53 @@ global_iter_count=0
 
 while "${CHAOS}" ; do
     RAND="${RANDOM}"
+    # TODO: clean up this if ladder a bit
     if [ $(( RAND % DNS_DROP_FREQ )) -eq 0 ]; then
         if $dns_drop_applied; then
-            dns_drop_applied=false
-            restore_dns
+            if [ $(( RANDOM % CLEANUP_FREQ )) -eq 0 ]; then
+                dns_drop_applied=false
+                restore_dns
+            fi
         else
             dns_drop_applied=true
             drop_dns
         fi
     elif [ $(( RAND % PACKET_DROP_FREQ )) -eq 1 ]; then
         if $global_packet_drop; then
-            global_packet_drop=false
-            global_restore_packet_drop
+            if [ $(( RANDOM % CLEANUP_FREQ )) -eq 0 ]; then
+                global_packet_drop=false
+                global_restore_packet_drop
+            fi
         else
             global_packet_drop=true
             global_drop_packets
         fi
     elif [ $(( RAND % BANDWIDTH_LIMIT_FREQ )) -eq 2 ]; then
         if $global_bandwidth_limited; then
-            global_bandwidth_limited=false
-            global_restore_bandwidth
+            if [ $(( RANDOM % CLEANUP_FREQ )) -eq 0 ]; then
+                global_bandwidth_limited=false
+                global_restore_bandwidth
+            fi
         else
             global_bandwidth_limited=true
             global_limit_bandwidth
         fi
     elif [ $(( RAND % THROTTLE_FREQ )) -eq 3 ]; then
         if $global_traffic_throttled; then
-            global_traffic_throttled=false
-            global_restore_throttle
+            if [ $(( RANDOM % CLEANUP_FREQ )) -eq 0 ]; then
+                global_traffic_throttled=false
+                global_restore_throttle
+            fi
         else
             global_traffic_throttled=true
             global_throttle_traffic
         fi
     elif [ $(( RAND % RANDOM_SUBNET_FREQ )) -eq 4 ]; then
         if $random_subnet_drop_applied; then
-            random_subnet_drop_applied=false
-            restore_random_subnets
+            if [ $(( RANDOM % CLEANUP_FREQ )) -eq 0 ]; then
+                random_subnet_drop_applied=false
+                restore_random_subnets
+            fi
         else
             random_subnet_drop_applied=true
             drop_random_subnet
@@ -268,8 +290,8 @@ while "${CHAOS}" ; do
         fi
     elif [ $(( RAND % FORCED_UPDATE_FREQ )) -eq 6 ]; then
         force_update
-    elif [ $(( RAND % RANDOM_SERVICE_RESTART_RESTART_FREQ )) -eq 7 ]; then
-        case "$(( RAND % RANDOM_SERVICE_RESTART_RESTART_FREQ ))" in
+    elif [ $(( RAND % RANDOM_SERVICE_RESTART_FREQ )) -eq 7 ]; then
+        case "$(( RAND % SERVICE_COUNT ))" in
             "0")
                 restart_engine
                 ;;
