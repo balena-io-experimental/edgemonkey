@@ -4,6 +4,8 @@ trap cleanup EXIT INT HUP
 
 INTERFACE="$(ip addr | awk '/'"$(curl -sq -X GET --header "Content-Type:application/json" \
 "${BALENA_SUPERVISOR_ADDRESS}/v1/device?apikey=${BALENA_SUPERVISOR_API_KEY}" | jq -r .ip_address)"'/{print $NF}')"
+DATA_DIR="/data"
+FILL_FILE="edgemonkey.fill"
 SERVICE_COUNT=0
 
 # come from ENV
@@ -28,6 +30,7 @@ PACKET_DROP_FREQ=${PACKET_DROP_FREQ:-25}
 RANDOM_SERVICE_RESTART_FREQ=${RANDOM_SERVICE_RESTART_FREQ:-10}
 RANDOM_SUBNET_FREQ=${RANDOM_SUBNET_FREQ:-25}
 THROTTLE_FREQ=${THROTTLE_FREQ:-25}
+VOLUME_FILL_FREQ=${VOLUME_FILL_FREQ:-25}
 
 function global_throttle_traffic() {
     echo "throttling traffic globally to ${THROTTLE}.."
@@ -156,6 +159,20 @@ function global_restore_bandwidth(){
     wondershaper "${INTERFACE}" clear
 }
 
+function fill_random_data_dir(){
+    victim_dir=$(find "${DATA_DIR}" -mindepth 1 -maxdepth 1 | shuf -n1)
+    size=$(df -lBM --output=avail "${victim_dir}" | awk '/^[0-9]./')
+    echo "creating ${size} edgemonkey fill file in ${victim_dir}.."
+    fallocate -l "${size}" "${victim_dir}/${FILL_FILE}"
+    echo "created fill file"
+}
+
+function remove_fill_files(){
+    echo "removing all fill files from ${DATA_DIR}.."
+    rm -f "${DATA_DIR}/*/${FILL_FILE}"
+    echo "removed fill files"
+}
+
 function global_limit_bandwidth(){
     RAND="${RANDOM}"
     case "$(( RAND % 3 ))" in
@@ -209,8 +226,10 @@ function remove_application_lock() {
         echo "could not remove lock at $BALENA_APP_LOCK_PATH, owned by pid $(cat "$BALENA_APP_LOCK_PATH")"
     fi
 }
+
 function cleanup() {
     # passing a 0 restores all DNS traffic
+    remove_fill_files
     restore_dns 0
     restore_random_subnets 0
     global_restore_packet_drop
@@ -290,7 +309,15 @@ while "${CHAOS}" ; do
         fi
     elif [ $(( RAND % FORCED_UPDATE_FREQ )) -eq 6 ]; then
         force_update
-    elif [ $(( RAND % RANDOM_SERVICE_RESTART_FREQ )) -eq 7 ]; then
+    elif [ $(( RAND % VOLUME_FILL_FREQ )) -eq 7 ]; then
+        if stat ${DATA_DIR}/*/${FILL_FILE}; then
+            if [ $(( RANDOM % CLEANUP_FREQ )) -eq 0 ]; then
+                remove_fill_files
+            fi
+        else
+            fill_random_data_dir
+        fi
+    elif [ $(( RAND % RANDOM_SERVICE_RESTART_FREQ )) -eq 8 ]; then
         case "$(( RAND % SERVICE_COUNT ))" in
             "0")
                 restart_engine

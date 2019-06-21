@@ -30,6 +30,7 @@ still recommended that one has **PHYSICAL ACCESS** to the device in case things 
 | `THROTTLE_FREQ` | how often to throttle traffic (in 1/x refreshes) | 25 |
 | `THROTTLE_VALUE` | global throttle value (in ms) | 250 |
 | `UPLOAD_LIMIT` | global upload bandwidth limit (in Kbps) | 500 |
+| `VOLUME_FREQ` | how often to fill a random volume provided (in 1/x refreshes) | 25 |
 
 ### Currently implemented tests
 #### `global_throttle_traffic`
@@ -67,6 +68,9 @@ Restart the `chronyd` service in the hostOS via DBus
 
 #### `restart_vpn`
 Restart the `openvpn` service in the hostOS via DBus
+
+#### `fill_random_data_dir`
+Fill a random volume provided with nothing (to test disk fill events)
 
 #### `restart_engine`
 Restart the `balena` service in the hostOS via DBus

@@ -1,4 +1,6 @@
 version: '2'
+volumes:
+    edgemonkey:
 services:
     edgemonkey:
         build: ./edgemonkey
@@ -9,3 +11,5 @@ services:
             io.balena.features.balena-socket: '1'
             io.balena.features.supervisor-api: '1'
             io.balena.features.dbus: '1'
+        volumes:
+            - 'edgemonkey:/data/edgemonkey'
