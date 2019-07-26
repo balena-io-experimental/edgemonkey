@@ -24,6 +24,7 @@ BANDWIDTH_MAX=${BANDWIDTH_MAX:-9999999} # Kbps
 BANDWIDTH_LIMIT_FREQ=${BANDWIDTH_LIMIT_FREQ:-25}
 CLEANUP_FREQ=${CLEANUP_FREQ:-4}
 DNS_DROP_FREQ=${DNS_DROP_FREQ:-25}
+VPN_DROP_FREQ=${DNS_DROP_FREQ:-25}
 FORCED_UPDATE_FREQ=${FORCED_UPDATE_FREQ:-25}
 LOCKFILE_FREQ=${LOCKFILE_FREQ:-25}
 PACKET_DROP_FREQ=${PACKET_DROP_FREQ:-25}
@@ -118,6 +119,13 @@ function restart_all_apps() {
     "${BALENA_SUPERVISOR_ADDRESS}/v1/restart?apikey=${BALENA_SUPERVISOR_API_KEY}"
 }
 
+function drop_vpn() {
+    echo "dropping all VPN traffic.."
+    iptables -A OUTPUT -p tcp --dport 443 -j DROP -m comment --comment "VPN_DROP_OUT"
+    iptables -A INPUT -p tcp --dport 443 -j DROP -m comment --comment "VPN_DROP_IN"
+    echo "VPN filters applied"
+}
+
 function drop_dns() {
     echo "dropping all DNS traffic.."
     iptables -A OUTPUT -p udp -m udp --dport 53 -j DROP -m comment --comment "DNS_DROP_OUT"
@@ -191,6 +199,27 @@ function global_limit_bandwidth(){
     esac
 }
 
+function restore_vpn() {
+    echo "restoring VPN traffic.."
+    comment="VPN_DROP"
+    RAND="${1:-$RANDOM}"
+    case "$(( RAND % 3 ))" in
+        "0")
+            echo "restoring ALL VPN traffic.."
+            iptables-save | grep -v "${comment}" | iptables-restore
+            ;;
+        "1")
+            echo "restoring INBOUND VPN traffic.."
+            iptables-save | grep -v "${comment}_IN" | iptables-restore
+            ;;
+        "2")
+            echo "restoring OUTBOUND VPN traffic.."
+            iptables-save | grep -v "${comment}_OUT" | iptables-restore
+            ;;
+    esac
+    echo "VPN filters removed"
+}
+
 function restore_dns() {
     echo "restoring DNS traffic.."
     comment="DNS_DROP"
@@ -231,6 +260,7 @@ function cleanup() {
     # passing a 0 restores all DNS traffic
     remove_fill_files
     restore_dns 0
+    restore_vpn 0
     restore_random_subnets 0
     global_restore_packet_drop
     global_restore_bandwidth
@@ -242,6 +272,7 @@ echo "INTERFACE set to ${INTERFACE}"
 
 # initialize some states
 dns_drop_applied=false
+vpn_drop_applied=false
 random_subnet_drop_applied=false
 global_traffic_throttled=false
 global_bandwidth_limited=false
@@ -338,6 +369,16 @@ while "${CHAOS}" ; do
                 restart_supervisor
                 ;;
         esac
+    elif [ $(( RAND % VPN_DROP_FREQ )) -eq 9 ]; then
+        if $vpn_drop_applied; then
+            if [ $(( RANDOM % CLEANUP_FREQ )) -eq 0 ]; then
+                vpn_drop_applied=false
+                restore_vpn
+            fi
+        else
+            vpn_drop_applied=true
+            drop_vpn
+        fi
     fi
     global_iter_count=$(( global_iter_count + 1 ))
     echo "iteration ${global_iter_count}"
