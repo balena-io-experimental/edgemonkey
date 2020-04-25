@@ -34,10 +34,10 @@ still recommended that one has **PHYSICAL ACCESS** to the device in case things 
 
 ### Currently implemented tests
 #### `global_throttle_traffic`
-Throttle all traffic to $THROTTLE_VALUE
+Throttle all traffic to ${THROTTLE_VALUE}
 
 #### `global_drop_packets`
-Drop $PERC_DROP packets indiscriminantly
+Drop ${PERC_DROP} packets indiscriminately
 
 #### `global_bandwidth_limit`
 Limit either upload, download, or all bandwidth

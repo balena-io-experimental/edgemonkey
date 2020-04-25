@@ -1,4 +1,4 @@
-FROM balenalib/%%BALENA_MACHINE_NAME%%-fedora-python:3.7
+FROM balenalib/%%BALENA_MACHINE_NAME%%-fedora-node:13-20200405
 
 RUN install_packages \
     bind-utils \
@@ -12,6 +12,9 @@ RUN install_packages \
 
 WORKDIR /usr/src/app
 
-COPY entry.sh ./
+COPY actions.sh package.json package-lock.json tsconfig.json ./
+COPY ./src ./src
+RUN JOBS=max npm ci --unsafe-perm --production && npm cache clean --force 2>/dev/null
+RUN npm run build
 
-ENTRYPOINT [ "/usr/src/app/entry.sh" ]
+CMD [ "node", "/usr/src/app/build/src/index.js" ]
