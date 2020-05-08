@@ -13,3 +13,5 @@ services:
             io.balena.features.dbus: '1'
         volumes:
             - 'edgemonkey:/data/edgemonkey'
+        environment:
+            DEBUG: 1

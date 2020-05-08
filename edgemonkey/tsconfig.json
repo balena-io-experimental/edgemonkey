@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"target": "ES2019",
+		"module": "commonjs",
+		"noImplicitAny": true,
+		"preserveConstEnums": true,
+		"inlineSourceMap": true,
+		"strictNullChecks": true,
+		"outDir": "./build/",
+		"skipLibCheck": true,
+		"lib": ["es6"],
+		"resolveJsonModule": true,
+		"allowJs": true
+	},
+	"include": ["src/**/*", "test/**/*", "typings/**/*.d.ts"]
+}
