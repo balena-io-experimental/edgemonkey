@@ -2,35 +2,44 @@
 ## On-device chaos for edge resilience
 
 ### Use
-To apply this to your container, simply drop the (`docker-compose.yml`)[./docker-compose.yml] snippet application's
+To apply this to your container, simply drop the [`docker-compose.yml`](./docker-compose.yml) snippet application's
 `docker-compose.yml` file and [`edgemonkey`](./edgemonkey) directory into your app's root and push to a LOCAL TEST
 DEVICE.
 
-While the tests are running, observe your application and device to confirm things are functioning as expected!
+You can then trigger any test or fix individually by POSTing to the API:
 
-Stopping the edgemonkey (or sending `KILL`/`HUP`/`STOP` signals) will clean up and reset all settings, though it is
-still recommended that one has **PHYSICAL ACCESS** to the device in case things go awry.
+```shell
+curl -XPOST http://316d17c.local/v1/drop_dns
+```
+
+Alternatively, you can trigger chaos mode by POSTing:
+
+```shell
+curl -XPOST http://316d17c.local/v1/chaos
+```
+
+This mode will create chaos according to a thresholded Poisson distribution. The distribution and filter parameters can
+be controlled with the following environment variables:
+
+| Variable | Description | Default value |
+| ------- | ------ | ----- |
+| `LOOP_TIME_MS` | total time to create chaos (in ms) | 60000 |
+| `LAMBDA_VALUE` | lambda used in Poisson distribution | 4 |
+| `FILTER_VALUE` | values from Poisson above which to cause chaos | 5 |
+| `TIME_SLICES` | how many times to test within the `LOOP_TIME_MS` | 20 |
 
 ### Configuration options (via environment variables)
 
 | Variable | Description | Default value |
 | ------- | ------ | ----- |
-| `CHAOS` | if set, prevent the chaos engine from starting up (for debugging) | unset |
+| `EDGEMONKEY_PORT` | port to listen on | 9000 |
 | `BANDWIDTH_MAX` | maximum bandwidth for wondershaper resets (in Kbps) | 9999999 |
-| `CLEANUP_FREQ` | how often to generally remove limits/throttles/filters (in 1/x refreshes) | 4 |
 | `DOWNLOAD_LIMIT` | global download bandwidth limit (in Kbps) | 500 |
-| `FORCED_UPDATE_FREQ` | how often to force the supervisor to update the application (in 1/x refreshes) | 25 |
 | `GLOBAL_REFRESH` | global refresh rate (in s) | 2 |
 | `GLOBAL_TIMEOUT` | after N seconds (refresh rate * loop count), edgemonkey will clean up & sleep infinity (for debugging) (in s) | 0 |
-| `LOCKFILE_FREQ` | how often to take the application lockfile (in 1/x refreshes) | 25 |
-| `PACKET_DROP_FREQ` | how often to drop packets (in 1/x refreshes) | 25 |
 | `PERC_DROP` | global percentage of traffic to drop (in %) | 5 |
-| `RANDOM_SERVICE_RESTART_FREQ` | how often to restart one of the hostOS processes (in 1/x refreshes) | 25 |
-| `RANDOM_SUBNET_FREQ` | how often to randomly block a subnet (in 1/x refreshes) | 25 |
-| `THROTTLE_FREQ` | how often to throttle traffic (in 1/x refreshes) | 25 |
 | `THROTTLE_VALUE` | global throttle value (in ms) | 250 |
 | `UPLOAD_LIMIT` | global upload bandwidth limit (in Kbps) | 500 |
-| `VOLUME_FREQ` | how often to fill a random volume provided (in 1/x refreshes) | 25 |
 
 ### Currently implemented tests
 #### `global_throttle_traffic`
