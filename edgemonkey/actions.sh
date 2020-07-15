@@ -6,12 +6,6 @@ function log() {
     fi
 }
 
-function log() {
-    if [ "${DEBUG}" -eq 1 ]; then
-        echo "$@"
-    fi
-}
-
 INTERFACE="$(ip addr | awk '/'"$(curl -sq -X GET --header "Content-Type:application/json" \
 "${BALENA_SUPERVISOR_ADDRESS}/v1/device?apikey=${BALENA_SUPERVISOR_API_KEY}" | jq -r .ip_address)"'/{print $NF}')"
 DATA_DIR="/data"
